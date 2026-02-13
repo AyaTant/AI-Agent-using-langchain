@@ -18,7 +18,7 @@ todoist = TodoistAPI(todoist_api_key)
 #print(gemini_api_key)
 
 @tool 
-def add_task(task, description):
+def add_task(task, description=None):
     """Add a new task to the user's task list. Use this when the user wants to add or create a task """
     todoist.add_task(content=task,
                      description=description)
@@ -32,10 +32,12 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.3
 )
 system_prompt = "You are a helpful assistant, You will hep the user add tasks"
-user_input = "add a new task to buy milk"
+
 prompt = ChatPromptTemplate([("system",system_prompt),
-                             ("user",user_input),
-                             MessagesPlaceholder("agent_scratchpad") 
+                             MessagesPlaceholder("history"),
+                             ("user","{input}"),
+                             MessagesPlaceholder("agent_scratchpad")
+                             
                              ])
 
 #chain = prompt | llm | StrOutputParser()
@@ -43,5 +45,12 @@ prompt = ChatPromptTemplate([("system",system_prompt),
 agent = create_openai_tools_agent(llm,tools,prompt)
 agent_executor = AgentExecutor(agent=agent,tools=tools,verbose=True)
 #response = chain.invoke({"input":user_input})
-response = agent_executor.invoke({"input":user_input})
-print(response)
+#response = agent_executor.invoke({"input":user_input})
+
+history = []
+while True:
+    user_input = input("You: ")
+    response = agent_executor.invoke({"input":user_input, "history":history})
+    print(response['output']) 
+    history.append(content=user_input)
+    history.append(AIMessage(content=response['output']))
